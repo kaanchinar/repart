@@ -71,7 +71,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
 
-        <CheckoutClient listing={listing} user={session.user} />
+        <CheckoutClient listing={listing} />
       </main>
     </div>
   );

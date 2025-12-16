@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MapPin, Plus, Trash2, Check } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -66,6 +66,7 @@ export default function AddressManager() {
         toast.error("Xəta baş verdi");
       }
     } catch (error) {
+      console.error("Failed to create address", error);
       toast.error("Xəta baş verdi");
     }
   };
@@ -83,112 +84,141 @@ export default function AddressManager() {
         fetchAddresses();
       }
     } catch (error) {
+      console.error("Failed to delete address", error);
       toast.error("Xəta baş verdi");
     }
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <MapPin className="w-5 h-5 text-orange-500" />
-          Çatdırılma Ünvanları
-        </h2>
-        <button 
+    <section className="rounded-3xl border border-slate-800 bg-[#0b0f18] p-6 shadow-lg">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Çatdırılma ünvanları</p>
+          <h2 className="text-xl font-semibold text-white">Ünvan kitabçam</h2>
+          <p className="text-sm text-slate-400">Çatdırılma üçün tez-tez istifadə etdiyiniz məkanları saxlayın</p>
+        </div>
+        <button
           onClick={() => setShowForm(!showForm)}
-          className="text-sm bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+          className="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-slate-500"
         >
-          <Plus className="w-4 h-4" /> Yeni
+          <Plus className="h-4 w-4" />
+          Yeni ünvan
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3 animate-in fade-in slide-in-from-top-2">
-          <div>
-            <label className="text-xs text-gray-400">Başlıq (Məs: Ev, İş)</label>
-            <input 
-              required
-              value={newAddress.title}
-              onChange={(e) => setNewAddress({...newAddress, title: e.target.value})}
-              className="w-full bg-gray-950 border border-gray-800 rounded p-2 text-sm mt-1"
-              placeholder="Ev"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-400">Ünvan</label>
-            <input 
-              required
-              value={newAddress.addressLine}
-              onChange={(e) => setNewAddress({...newAddress, addressLine: e.target.value})}
-              className="w-full bg-gray-950 border border-gray-800 rounded p-2 text-sm mt-1"
-              placeholder="Nizami küç. 12, mənzil 45"
-            />
-          </div>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="text-xs text-gray-400">Şəhər</label>
-              <select 
+        <form
+          onSubmit={handleSubmit}
+          className="mt-5 grid gap-4 rounded-2xl border border-slate-800 bg-[#11172a] p-5 text-sm text-slate-300"
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-2">
+              <span>Başlıq</span>
+              <input
+                required
+                value={newAddress.title}
+                onChange={(e) => setNewAddress({ ...newAddress, title: e.target.value })}
+                className="w-full rounded-xl border border-slate-700 bg-[#0b0f18] px-3 py-2 text-white focus:border-slate-500 focus:outline-none"
+                placeholder="Ev / Ofis"
+              />
+            </label>
+            <label className="space-y-2">
+              <span>Şəhər</span>
+              <select
                 value={newAddress.city}
-                onChange={(e) => setNewAddress({...newAddress, city: e.target.value})}
-                className="w-full bg-gray-950 border border-gray-800 rounded p-2 text-sm mt-1"
+                onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                className="w-full rounded-xl border border-slate-700 bg-[#0b0f18] px-3 py-2 text-white focus:border-slate-500 focus:outline-none"
               >
                 <option value="Baku">Bakı</option>
                 <option value="Sumqayit">Sumqayıt</option>
                 <option value="Ganja">Gəncə</option>
               </select>
-            </div>
-            <div className="w-1/3">
-              <label className="text-xs text-gray-400">Poçt Kodu</label>
-              <input 
-                value={newAddress.zipCode}
-                onChange={(e) => setNewAddress({...newAddress, zipCode: e.target.value})}
-                className="w-full bg-gray-950 border border-gray-800 rounded p-2 text-sm mt-1"
+            </label>
+          </div>
+          <label className="space-y-2">
+            <span>Ünvan xətti</span>
+            <input
+              required
+              value={newAddress.addressLine}
+              onChange={(e) => setNewAddress({ ...newAddress, addressLine: e.target.value })}
+              className="w-full rounded-xl border border-slate-700 bg-[#0b0f18] px-3 py-2 text-white focus:border-slate-500 focus:outline-none"
+              placeholder="Nizami küç. 12, mənzil 45"
+            />
+          </label>
+          <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+            <label className="space-y-2">
+              <span>Poçt kodu</span>
+              <input
+                value={newAddress.zipCode ?? ""}
+                onChange={(e) => setNewAddress({ ...newAddress, zipCode: e.target.value })}
+                className="w-full rounded-xl border border-slate-700 bg-[#0b0f18] px-3 py-2 text-white focus:border-slate-500 focus:outline-none"
                 placeholder="AZ1000"
               />
-            </div>
+            </label>
+            <label className="mt-5 flex items-center gap-3 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                checked={newAddress.isDefault}
+                onChange={(e) => setNewAddress({ ...newAddress, isDefault: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-600 bg-[#0b0f18] text-slate-100 focus:ring-slate-500"
+              />
+              Əsas ünvan kimi qeyd et
+            </label>
           </div>
-          <div className="flex items-center gap-2">
-            <input 
-              type="checkbox" 
-              id="isDefault"
-              checked={newAddress.isDefault}
-              onChange={(e) => setNewAddress({...newAddress, isDefault: e.target.checked})}
-              className="rounded bg-gray-950 border-gray-800"
-            />
-            <label htmlFor="isDefault" className="text-sm text-gray-300">Əsas ünvan kimi qeyd et</label>
-          </div>
-          <div className="flex gap-2 pt-2">
-            <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-gray-800 py-2 rounded text-sm">Ləğv et</button>
-            <button type="submit" className="flex-1 bg-orange-600 hover:bg-orange-500 py-2 rounded text-sm font-medium">Yadda saxla</button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="rounded-2xl border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-slate-500"
+            >
+              Ləğv et
+            </button>
+            <button
+              type="submit"
+              className="flex-1 rounded-2xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900"
+            >
+              Yadda saxla
+            </button>
           </div>
         </form>
       )}
 
-      <div className="space-y-2">
+      <div className="mt-6 grid gap-4">
         {loading ? (
-          <p className="text-sm text-gray-500">Yüklənir...</p>
+          <p className="text-sm text-slate-500">Yüklənir...</p>
         ) : addresses.length === 0 ? (
-          <p className="text-sm text-gray-500 italic">Hələ ünvan əlavə edilməyib.</p>
+          <div className="rounded-2xl border border-dashed border-slate-800 p-6 text-sm text-slate-500">
+            Hələ ünvan əlavə edilməyib.
+          </div>
         ) : (
           addresses.map((addr) => (
-            <div key={addr.id} className="bg-gray-900 p-3 rounded-lg border border-gray-800 flex justify-between items-start group">
+            <div
+              key={addr.id}
+              className="group flex items-start justify-between rounded-2xl border border-slate-800 bg-[#11172a] p-4 transition hover:border-slate-600"
+            >
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">{addr.title}</span>
-                  {addr.isDefault && <span className="text-[10px] bg-green-900/30 text-green-400 px-1.5 rounded">Əsas</span>}
+                  <span className="font-semibold text-white">{addr.title}</span>
+                  {addr.isDefault && (
+                    <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-200">
+                      Əsas
+                    </span>
+                  )}
                 </div>
-                <p className="text-xs text-gray-400 mt-1">{addr.addressLine}, {addr.city} {addr.zipCode}</p>
+                <p className="mt-1 text-sm text-slate-400">
+                  {addr.addressLine}, {addr.city} {addr.zipCode}
+                </p>
               </div>
-              <button 
+              <button
                 onClick={() => handleDelete(addr.id)}
-                className="text-gray-600 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="rounded-full border border-transparent p-2 text-slate-500 opacity-0 transition group-hover:border-slate-500 group-hover:text-white group-hover:opacity-100"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="h-4 w-4" />
               </button>
             </div>
           ))
         )}
       </div>
-    </div>
+    </section>
   );
 }

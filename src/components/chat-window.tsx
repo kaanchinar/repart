@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Send, User } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,7 +31,7 @@ export default function ChatWindow({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       const res = await fetch(`/api/messages?userId=${otherUserId}`);
       if (res.ok) {
@@ -41,13 +41,13 @@ export default function ChatWindow({
     } catch (error) {
       console.error("Failed to fetch messages", error);
     }
-  };
+  }, [otherUserId]);
 
   useEffect(() => {
     fetchMessages();
     const interval = setInterval(fetchMessages, 5000); // Poll every 5s
     return () => clearInterval(interval);
-  }, [otherUserId]);
+  }, [fetchMessages]);
 
   useEffect(() => {
     scrollToBottom();
@@ -74,6 +74,7 @@ export default function ChatWindow({
       setNewMessage("");
       fetchMessages();
     } catch (error) {
+      console.error("Failed to send message", error);
       toast.error("Mesaj göndərilmədi");
     } finally {
       setLoading(false);

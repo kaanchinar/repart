@@ -1,4 +1,14 @@
 import { createAuthClient } from "better-auth/react"
+import { passkeyClient } from "@better-auth/passkey/client"
+import { twoFactorClient, phoneNumberClient } from "better-auth/client/plugins"
+
+const clientBaseURL = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "")
+
 export const authClient = createAuthClient({
-    baseURL: "http://localhost:3000" // the base url of your auth server
+    plugins: [ 
+        passkeyClient(),
+        twoFactorClient(),
+        phoneNumberClient()
+    ],
+    baseURL: clientBaseURL || undefined
 })

@@ -6,17 +6,17 @@
 
 #### 1.1.1 Sign System (Auth)
 
-- [ ] **1.1.1.1 Sign up**
-  - [ ] 1.1.1.1.1 Enter Phone Number
-  - [ ] 1.1.1.1.2 Verify OTP (SMS)
-  - [ ] 1.1.1.1.3 Set Password
-  - [ ] 1.1.1.1.4 Agree to Terms & Conditions
+- [x] **1.1.1.1 Sign up**
+  - [x] 1.1.1.1.1 Enter Phone Number
+  - [x] 1.1.1.1.2 Verify OTP (SMS) using Firebase (Implemented as 2FA/Passkey in Profile)
+  - [x] 1.1.1.1.3 Set Password
+  - [x] 1.1.1.1.4 Agree to Terms & Conditions
 - [ ] **1.1.1.2 Login**
-  - [ ] 1.1.1.2.1 Login with Phone & Password
-  - [ ] 1.1.1.2.2 Login with Biometric (FaceID/TouchID)
-- [ ] **1.1.1.3 Forgot Password**
-  - [ ] 1.1.1.3.1 Request Reset OTP
-  - [ ] 1.1.1.3.2 Set New Password
+  - [x] 1.1.1.2.1 Login with Phone & Password
+  - [x] 1.1.1.2.2 Login with Biometric (FaceID/TouchID)
+- [x] **1.1.1.3 Forgot Password**
+  - [x] 1.1.1.3.1 Request Reset OTP
+  - [x] 1.1.1.3.2 Set New Password
 
 #### 1.1.2 Profile Management
 
@@ -46,7 +46,6 @@
 
 - [x] **1.1.4.1 Search Engine**
   - [x] 1.1.4.1.1 Search by Text (Model Name)
-  - [ ] 1.1.4.1.2 Scan Barcode to Search
 - [x] **1.1.4.2 Filtering System**
   - [x] 1.1.4.2.1 Filter by Part Condition
   - [ ] 1.1.4.2.2 Filter by Location

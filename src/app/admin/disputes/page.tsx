@@ -2,21 +2,14 @@ import { db } from "@/db";
 import { disputes, orders, listings, user } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import Link from "next/link";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { formatAZN } from "@/lib/validators";
+import { requireAdminSession } from "@/lib/admin-session";
+import { MessageSquareWarning } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminDisputesPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    redirect("/sign-in");
-  }
-
-  // In a real app, check for session.user.role === 'admin'
-  // For now, we assume access is allowed or we can add a check if we had a way to set roles.
+  await requireAdminSession();
 
   const openDisputes = await db
     .select({
@@ -37,50 +30,60 @@ export default async function AdminDisputesPage() {
     .orderBy(desc(disputes.createdAt));
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Admin: Open Disputes</h1>
-      
-      {openDisputes.length === 0 ? (
-        <p className="text-gray-500">No open disputes found.</p>
-      ) : (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <ul className="divide-y divide-gray-200">
-            {openDisputes.map((dispute) => (
-              <li key={dispute.id}>
-                <Link href={`/admin/disputes/${dispute.id}`} className="block hover:bg-gray-50">
-                  <div className="px-4 py-4 sm:px-6">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-indigo-600 truncate">
-                        Order #{dispute.orderId.slice(0, 8)}
-                      </p>
-                      <div className="ml-2 flex-shrink-0 flex">
-                        <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                          {dispute.status}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-2 sm:flex sm:justify-between">
-                      <div className="sm:flex">
-                        <p className="flex items-center text-sm text-gray-500">
-                          Buyer: {dispute.buyerName}
-                        </p>
-                        <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                          Item: {dispute.listingModel}
-                        </p>
-                      </div>
-                      <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                        <p>
-                          Opened on {new Date(dispute.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
+        <header className="flex flex-col gap-2">
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Admin</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-semibold text-white">Disputes</h1>
+              <p className="text-sm text-slate-400">Bütün açıq çəkişmələri izləyin və hallara prioritet verin.</p>
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">
+              <MessageSquareWarning className="h-4 w-4" /> {openDisputes.length} açıq
+            </span>
+          </div>
+        </header>
+
+        <div className="space-y-3">
+          {openDisputes.length === 0 && (
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-8 text-center text-sm text-slate-500">
+              Hal-hazırda açıq dispute yoxdur.
+            </div>
+          )}
+
+          {openDisputes.map((dispute) => (
+            <Link
+              key={dispute.id}
+              href={`/admin/disputes/${dispute.id}`}
+              className="flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-4 transition hover:border-slate-600"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-white">Sifariş #{dispute.orderId.slice(0, 8)}</p>
+                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs uppercase tracking-[0.2em] text-amber-100">
+                  {dispute.status}
+                </span>
+              </div>
+              <div className="grid gap-3 text-sm text-slate-300 md:grid-cols-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Alıcı</p>
+                  <p>{dispute.buyerName}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Model</p>
+                  <p>{dispute.listingModel}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Məbləğ</p>
+                  <p>{formatAZN(dispute.amount ?? 0)}</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-400">{dispute.reason || "Əlavə səbəb daxil edilməyib."}</p>
+              <p className="text-xs text-slate-500">Açılma tarixi {new Date(dispute.createdAt).toLocaleDateString()}</p>
+            </Link>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }

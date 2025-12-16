@@ -5,12 +5,24 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Truck, CheckCircle2, AlertOctagon } from "lucide-react";
 
-export default function OrderActions({ order, isBuyer, isSeller }: { order: any, isBuyer: boolean, isSeller: boolean }) {
+type OrderSummary = {
+  id: string;
+  escrowStatus: "held" | "released" | "disputed" | "refunded";
+  cargoTrackingCode?: string | null;
+};
+
+type OrderActionsProps = {
+  order: OrderSummary;
+  isBuyer: boolean;
+  isSeller: boolean;
+};
+
+export default function OrderActions({ order, isBuyer, isSeller }: OrderActionsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [trackingCode, setTrackingCode] = useState(order.cargoTrackingCode || "");
 
-  const handleAction = async (action: string, payload: any = {}) => {
+  const handleAction = async (action: string, payload: Record<string, unknown> = {}) => {
     setLoading(true);
     try {
       const res = await fetch(`/api/orders/${order.id}`, {
@@ -24,8 +36,9 @@ export default function OrderActions({ order, isBuyer, isSeller }: { order: any,
 
       toast.success("Əməliyyat uğurla yerinə yetirildi");
       router.refresh();
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Əməliyyat zamanı xəta baş verdi";
+      toast.error(message);
     } finally {
       setLoading(false);
     }

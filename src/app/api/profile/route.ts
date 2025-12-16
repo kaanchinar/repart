@@ -15,18 +15,19 @@ export async function PATCH(req: Request) {
   }
 
   const body = await req.json();
-  const { phone, payoutCardPan } = body;
+  const { phone, phoneNumber } = body;
+  const normalizedPhone = phoneNumber ?? phone;
 
   try {
     await db.update(user)
       .set({ 
-        phone, 
-        payoutCardPan 
+        phoneNumber: normalizedPhone 
       })
       .where(eq(user.id, session.user.id));
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error("Profile update failed", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

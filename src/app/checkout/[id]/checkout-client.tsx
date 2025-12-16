@@ -14,7 +14,16 @@ type Address = {
   isDefault: boolean;
 };
 
-export default function CheckoutClient({ listing, user }: { listing: any, user: any }) {
+type CheckoutListing = {
+  id: string;
+  price: number;
+};
+
+type CheckoutClientProps = {
+  listing: CheckoutListing;
+};
+
+export default function CheckoutClient({ listing }: CheckoutClientProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -69,8 +78,9 @@ export default function CheckoutClient({ listing, user }: { listing: any, user: 
 
       toast.success("Sifariş uğurla yaradıldı!");
       router.push(`/orders/${data.orderId}`);
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Sifariş yaradılarkən xəta baş verdi";
+      toast.error(message);
     } finally {
       setLoading(false);
     }

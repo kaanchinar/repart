@@ -14,22 +14,29 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { modelName, faultTree, imei, price, photos } = body;
+  const { modelName, faultTree, imei, price, photos, brand, deviceType, conditionSummary, riskScore } = body;
 
-  // Mask IMEI (Show first 3, last 3)
-  const imeiMasked = imei.length === 15 
-    ? `${imei.slice(0, 3)}***${imei.slice(-3)}` 
-    : imei;
+  const maskIdentifier = (value: string) => {
+    if (!value) return "";
+    if (value.length <= 6) return value;
+    return `${value.slice(0, 3)}***${value.slice(-3)}`;
+  };
+
+  const imeiMasked = maskIdentifier(imei ?? "");
 
   try {
     await db.insert(listings).values({
       sellerId: session.user.id,
       modelName,
+      brand: brand || "Unknown",
+      deviceType: deviceType || "phone",
       faultTree,
       imeiMasked,
-      imeiEncrypted: imei, // In real app, encrypt this field!
+      imeiEncrypted: imei ?? "", // In real app, encrypt this field!
       price,
       photos: photos || [],
+      conditionSummary,
+      riskScore: riskScore ?? 50,
       status: 'active'
     });
 
@@ -45,6 +52,7 @@ export async function GET() {
     const allListings = await db.select().from(listings).orderBy(listings.createdAt);
     return NextResponse.json(allListings);
   } catch (error) {
+    console.error(error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

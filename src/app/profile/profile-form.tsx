@@ -7,6 +7,12 @@ import { Loader2, Save, LogOut } from "lucide-react"
 import { luhnCheck } from "@/lib/validators"
 import { toast } from "sonner"
 
+type ExtendedUserFields = {
+  phoneNumber?: string | null;
+  phone?: string | null;
+  payoutCardPan?: string | null;
+};
+
 export default function ProfilePage() {
   const { data: session, isPending } = authClient.useSession()
   const [phone, setPhone] = useState("")
@@ -22,10 +28,9 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (session?.user) {
-      // @ts-ignore - we added these fields to schema but client types might need update
-      setPhone(session.user.phone || "")
-      // @ts-ignore
-      setCardPan(session.user.payoutCardPan || "")
+      const userWithExtras = session.user as typeof session.user & ExtendedUserFields;
+      setPhone(userWithExtras.phoneNumber || userWithExtras.phone || "")
+      setCardPan(userWithExtras.payoutCardPan || "")
     }
   }, [session])
 
@@ -51,6 +56,7 @@ export default function ProfilePage() {
       toast.success("Profil yeniləndi")
       router.refresh()
     } catch (error) {
+      console.error("Failed to update profile", error)
       toast.error("Yadda saxlamaq mümkün olmadı")
     } finally {
       setLoading(false)
@@ -62,71 +68,86 @@ export default function ProfilePage() {
     router.push("/sign-in")
   }
 
-  if (isPending) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+  if (isPending) {
+    return (
+      <div className="flex items-center justify-center rounded-3xl border border-slate-800 bg-[#0b0f18] p-6">
+        <Loader2 className="h-5 w-5 animate-spin text-slate-200" />
+      </div>
+    )
+  }
 
   if (!session) {
     router.push("/sign-in")
     return null
   }
 
+  const maskedCard = cardPan ? cardPan.replace(/(\d{4})(?=\d)/g, "$1 ").trim() : ""
+
   return (
-    <div className="p-4 max-w-md mx-auto space-y-6 pb-24">
-      <h1 className="text-2xl font-bold text-white">Profil</h1>
-      
-      <div className="bg-gray-900 p-4 rounded-lg border border-gray-800 space-y-4">
+    <section className="rounded-3xl border border-slate-800 bg-[#0b0f18] p-6 shadow-lg">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <label className="text-sm text-gray-400">Ad Soyad</label>
-          <div className="text-white font-medium">{session.user.name}</div>
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Profil məlumatları</p>
+          <h2 className="text-2xl font-semibold text-white">Şəxsi məlumat</h2>
+          <p className="text-sm text-slate-400">Hesabınızın əsas əlaqə detalları və payout kartı</p>
         </div>
-        <div>
-          <label className="text-sm text-gray-400">Email</label>
-          <div className="text-white font-medium">{session.user.email}</div>
+        <button
+          onClick={handleSignOut}
+          className="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-500"
+        >
+          <LogOut className="h-4 w-4" />
+          Çıxış
+        </button>
+      </div>
+
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="rounded-2xl border border-slate-800 bg-[#11172a] p-4">
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Ad Soyad</p>
+          <p className="mt-2 text-lg font-semibold text-white">{session.user.name}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-800 bg-[#11172a] p-4">
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Email</p>
+          <p className="mt-2 text-lg font-semibold text-white">{session.user.email}</p>
         </div>
       </div>
 
-      <div className="bg-gray-900 p-4 rounded-lg border border-gray-800 space-y-4">
-        <h2 className="text-lg font-semibold text-white">Əlaqə və Ödəniş</h2>
-        
-        <div>
-          <label className="text-sm text-gray-400">Telefon</label>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <label className="flex flex-col gap-2 rounded-2xl border border-slate-800 bg-[#11172a] p-4 text-sm text-slate-400">
+          Telefon nömrəsi
           <input
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white mt-1 focus:ring-2 focus:ring-green-500 outline-none"
+            className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 font-medium text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
             placeholder="+994 50 000 00 00"
           />
-        </div>
-
-        <div>
-          <label className="text-sm text-gray-400">Kart Nömrəsi (16 rəqəm)</label>
+        </label>
+        <label className="flex flex-col gap-2 rounded-2xl border border-slate-800 bg-[#11172a] p-4 text-sm text-slate-400">
+          Kart nömrəsi
           <input
             type="text"
-            value={cardPan}
-            onChange={(e) => setCardPan(e.target.value.replace(/\D/g, '').slice(0, 16))}
-            className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white mt-1 focus:ring-2 focus:ring-green-500 outline-none"
+            value={maskedCard}
+            onChange={(e) => setCardPan(e.target.value.replace(/\D/g, "").slice(0, 16))}
+            className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 font-medium text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
             placeholder="0000 0000 0000 0000"
           />
-          <p className="text-xs text-gray-500 mt-1">Yalnız Azərbaycan kartları (Card-to-Card üçün)</p>
-        </div>
+          <span className="text-xs text-slate-500">Yalnız AZN kartları · Luhn yoxlanışı tətbiq olunur</span>
+        </label>
+      </div>
 
+      <div className="mt-6 flex flex-col gap-3 md:flex-row">
         <button
           onClick={handleSave}
           disabled={loading}
-          className="w-full bg-green-600 hover:bg-green-500 text-white p-2 rounded flex items-center justify-center gap-2 font-medium"
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 disabled:opacity-60"
         >
-          {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Yadda saxla
         </button>
+        <div className="rounded-2xl border border-slate-800 bg-[#11172a] px-4 py-3 text-xs text-slate-400">
+          Kart məlumatları şifrələnmiş şəkildə saxlanılır və yalnız payout üçün istifadə olunur.
+        </div>
       </div>
-
-      <button
-        onClick={handleSignOut}
-        className="w-full bg-red-900/20 hover:bg-red-900/30 text-red-500 border border-red-900/50 p-2 rounded flex items-center justify-center gap-2"
-      >
-        <LogOut className="w-4 h-4" />
-        Çıxış
-      </button>
-    </div>
+    </section>
   )
 }

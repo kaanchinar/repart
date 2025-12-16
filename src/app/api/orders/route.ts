@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { listings, orders, listingStatusEnum } from "@/db/schema";
+import { listings, orders } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
 export async function POST(req: Request) {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { listingId, address } = body;
+    const { listingId } = body;
 
     if (!listingId) {
       return NextResponse.json({ error: "Listing ID is required" }, { status: 400 });

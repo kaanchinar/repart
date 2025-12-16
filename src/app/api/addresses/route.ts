@@ -5,7 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
-export async function GET(req: Request) {
+export async function GET() {
   const session = await auth.api.getSession({
     headers: await headers()
   });

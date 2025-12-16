@@ -6,7 +6,7 @@ import { orders, listings, user } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { formatAZN } from "@/lib/validators";
 import Link from "next/link";
-import { ArrowLeft, Package, CheckCircle, AlertTriangle, Clock } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertTriangle, Clock } from "lucide-react";
 import OrderActions from "./order-actions";
 
 export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {

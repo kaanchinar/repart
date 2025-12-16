@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { db } from "@/db";
 import { listings } from "@/db/schema";
 import { desc, eq, ilike, and } from "drizzle-orm";
@@ -8,6 +9,27 @@ import { headers } from "next/headers";
 import { Search, ShoppingCart } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
+
+type ListingRow = typeof listings.$inferSelect;
+
+type FaultTreePreview = {
+  screen?: string;
+  board?: string;
+  battery?: string;
+} & Record<string, unknown>;
+
+const normalizeFaultTree = (tree: ListingRow["faultTree"]): FaultTreePreview =>
+  (tree ?? {}) as FaultTreePreview;
+
+const isConditionMatch = (tree: ListingRow["faultTree"], condition?: string) => {
+  if (!condition) return true;
+  const preview = normalizeFaultTree(tree);
+
+  if (condition === "screen_working") return preview.screen === "working";
+  if (condition === "board_working") return preview.board === "working";
+  if (condition === "battery_good") return preview.battery === "good";
+  return true;
+};
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ q?: string, condition?: string }> }) {
   const { q, condition } = await searchParams;
@@ -36,15 +58,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
     .orderBy(desc(listings.createdAt))
     .limit(20); // Increased limit
 
-  // In-memory filter for MVP
-  const filteredListings = condition ? latestListings.filter(l => {
-    // @ts-ignore
-    const ft = l.faultTree as any;
-    if (condition === 'screen_working') return ft?.screen === 'working';
-    if (condition === 'board_working') return ft?.board === 'working';
-    if (condition === 'battery_good') return ft?.battery === 'good';
-    return true;
-  }) : latestListings;
+  const filteredListings = condition
+    ? latestListings.filter((listing) => isConditionMatch(listing.faultTree, condition))
+    : latestListings;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-950 text-gray-100">
@@ -58,7 +74,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
            {session ? (
              <Link href="/profile" className="flex items-center gap-2 text-sm font-medium hover:text-green-400 transition-colors">
                <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-xs">
-                 {session.user.name[0].toUpperCase()}
+                 {session.user.name?.charAt(0)?.toUpperCase() ?? "?"}
                </div>
                <span>Profil</span>
              </Link>
@@ -152,12 +168,24 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
 
           {/* Listings Grid */}
           <div className="grid grid-cols-2 gap-3">
-            {filteredListings.map((item) => (
+            {filteredListings.map((item) => {
+              const normalizedFaultTree = normalizeFaultTree(item.faultTree);
+
+              return (
               <Link key={item.id} href={`/listings/${item.id}`} className="block group">
                 <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800 group-hover:border-gray-700 transition-all">
                   <div className="aspect-square bg-gray-800 relative">
-                    {/* @ts-ignore */}
-                    <img src={item.photos[0]} alt={item.modelName} className="w-full h-full object-cover" />
+                    {item.photos && item.photos.length > 0 ? (
+                      <Image
+                        src={item.photos[0]}
+                        alt={item.modelName}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 50vw, 200px"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center text-2xl">📷</div>
+                    )}
                     <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-white">
                       {formatAZN(item.price)}
                     </div>
@@ -165,19 +193,18 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
                   <div className="p-3">
                     <h4 className="font-medium text-sm text-gray-200 truncate">{item.modelName}</h4>
                     <div className="flex gap-1 mt-1 flex-wrap">
-                      {/* @ts-ignore */}
-                      {item.faultTree?.screen === 'working' && (
+                      {normalizedFaultTree.screen === 'working' && (
                         <span className="text-[10px] bg-blue-900/30 text-blue-400 px-1.5 py-0.5 rounded">Ekran OK</span>
                       )}
-                      {/* @ts-ignore */}
-                      {item.faultTree?.board === 'working' && (
+                      {normalizedFaultTree.board === 'working' && (
                         <span className="text-[10px] bg-purple-900/30 text-purple-400 px-1.5 py-0.5 rounded">Anakart OK</span>
                       )}
                     </div>
                   </div>
                 </div>
               </Link>
-            ))}
+              );
+            })}
           </div>
         </div>
       </main>

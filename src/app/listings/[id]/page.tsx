@@ -8,8 +8,40 @@ import { ArrowLeft, ShieldCheck, Truck, AlertTriangle, CheckCircle2, MessageCirc
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { CartButton } from "@/components/cart-button";
+import Image from "next/image";
 
 export const dynamic = 'force-dynamic';
+
+type FaultTreeAdjustments = {
+  label: string;
+  impact: number;
+};
+
+type FaultTreeValuation = {
+  basePrice?: number;
+  suggestion?: number;
+  adjustments?: FaultTreeAdjustments[];
+};
+
+type FaultTreeHardware = {
+  chipset?: string;
+  ram?: string;
+  storage?: string;
+  year?: number;
+};
+
+type ListingFaultTree = {
+  answers?: Record<string, string>;
+  notes?: string;
+  valuation?: FaultTreeValuation;
+  hardware?: FaultTreeHardware;
+  screen?: string;
+  display?: string;
+  board?: string;
+  battery?: string;
+  keyboard?: string;
+  ports?: string;
+};
 
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -39,12 +71,38 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const { listing, seller } = data;
   const isOwner = session?.user?.id === seller?.id;
 
-  // Parse fault tree for display
-  const faults = Object.entries(listing.faultTree).map(([part, status]) => ({
-    part: part.charAt(0).toUpperCase() + part.slice(1),
-    status: status as string,
-    isBroken: status === 'broken' || status === 'faulty',
-  }));
+  const rawFaultTree = ((listing.faultTree ?? {}) as ListingFaultTree & Record<string, unknown>);
+  const fallbackAnswers = Object.fromEntries(
+    Object.entries(rawFaultTree)
+      .filter(([key, value]) => key !== "notes" && typeof value === "string")
+      .map(([key, value]) => [key, String(value)])
+  );
+  const answers = rawFaultTree.answers ?? fallbackAnswers;
+
+  const labelMap: Record<string, string> = {
+    screen: "Ekran",
+    display: "Görüntü",
+    board: "Ana plata",
+    battery: "Batareya",
+    keyboard: "Klaviatura",
+    ports: "Portlar",
+  };
+
+  const faults = Object.entries(answers)
+    .filter(([key]) => key !== "notes")
+    .map(([part, status]) => {
+      const value = String(status);
+      const isBroken = /(not|broken|bad|damaged|dead)/i.test(value);
+      return {
+        part: labelMap[part] || part,
+        status: value,
+        isBroken,
+      };
+    });
+
+  const sellerNotes = typeof rawFaultTree?.notes === "string" ? rawFaultTree?.notes : undefined;
+  const valuation = rawFaultTree?.valuation;
+  const hardware = rawFaultTree?.hardware;
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 pb-40">
@@ -64,8 +122,13 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         <div className="space-y-2">
           <div className="aspect-square bg-gray-900 rounded-xl border border-gray-800 flex items-center justify-center relative overflow-hidden">
             {listing.photos && listing.photos.length > 0 ? (
-               // eslint-disable-next-line @next/next/no-img-element
-               <img src={listing.photos[0]} alt={listing.modelName} className="w-full h-full object-cover" />
+              <Image
+                src={listing.photos[0]}
+                alt={listing.modelName}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 600px"
+              />
             ) : (
               <div className="text-gray-600 flex flex-col items-center gap-2">
                 <span className="text-4xl">📷</span>
@@ -84,8 +147,14 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             <div className="flex gap-2 overflow-x-auto pb-2">
               {listing.photos.map((photo, idx) => (
                 <div key={idx} className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border border-gray-800">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photo} alt={`View ${idx}`} className="w-full h-full object-cover" />
+                  <Image
+                    src={photo}
+                    alt={`View ${idx}`}
+                    width={80}
+                    height={80}
+                    className="h-full w-full object-cover"
+                    sizes="80px"
+                  />
                 </div>
               ))}
             </div>
@@ -93,9 +162,55 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         </div>
 
         {/* Price & Title */}
-        <div>
-          <h2 className="text-2xl font-bold mb-1">{listing.modelName}</h2>
-          <div className="text-3xl font-bold text-green-500">{formatAZN(listing.price)}</div>
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-gray-500">{listing.brand} · {listing.deviceType}</p>
+            <h2 className="text-2xl font-bold mb-1">{listing.modelName}</h2>
+            <div className="text-3xl font-bold text-green-500">{formatAZN(listing.price)}</div>
+          </div>
+
+          {(valuation || hardware) && (
+            <div className="rounded-2xl border border-gray-800 bg-gray-900/40 p-4 text-sm text-gray-300">
+              <div className="grid grid-cols-2 gap-3">
+                {valuation?.basePrice && (
+                  <div>
+                    <p className="text-xs text-gray-500">Bazaya görə</p>
+                    <p className="font-semibold">{formatAZN(valuation.basePrice)}</p>
+                  </div>
+                )}
+                {valuation?.suggestion && (
+                  <div>
+                    <p className="text-xs text-gray-500">Qiymət şərhi</p>
+                    <p className="font-semibold">{formatAZN(valuation.suggestion)}</p>
+                  </div>
+                )}
+                {hardware?.chipset && (
+                  <div>
+                    <p className="text-xs text-gray-500">Çipset</p>
+                    <p>{hardware.chipset}</p>
+                  </div>
+                )}
+                {hardware?.ram && (
+                  <div>
+                    <p className="text-xs text-gray-500">RAM / Yaddaş</p>
+                    <p>
+                      {hardware.ram}
+                      {hardware.storage ? ` / ${hardware.storage}` : ""}
+                    </p>
+                  </div>
+                )}
+              </div>
+              {valuation?.adjustments && valuation.adjustments.length > 0 && (
+                <ul className="mt-3 space-y-1 text-xs text-gray-500">
+                  {valuation.adjustments.slice(0, 3).map((adj) => (
+                    <li key={adj.label}>
+                      {adj.label}: {adj.impact >= 0 ? "+" : ""}{adj.impact} AZN
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Seller Info */}
@@ -129,11 +244,11 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           </h3>
           <div className="grid grid-cols-2 gap-2">
             {faults.map((f) => (
-              <div 
-                key={f.part} 
+              <div
+                key={f.part}
                 className={`p-3 rounded-lg border ${
-                  f.isBroken 
-                    ? 'bg-red-950/20 border-red-900/50 text-red-200' 
+                  f.isBroken
+                    ? 'bg-red-950/20 border-red-900/50 text-red-200'
                     : 'bg-green-950/20 border-green-900/50 text-green-200'
                 }`}
               >
@@ -145,12 +260,18 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                     <><CheckCircle2 className="w-3 h-3" /> İşlək</>
                   )}
                 </div>
+                <p className="text-[11px] text-gray-500">{f.status}</p>
               </div>
             ))}
           </div>
           <div className="text-xs text-gray-500 bg-gray-900 p-3 rounded border border-gray-800">
             IMEI: {listing.imeiMasked}
           </div>
+          {sellerNotes && (
+            <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-3 text-xs text-gray-400">
+              Satıcı qeydi: {sellerNotes}
+            </div>
+          )}
         </div>
 
         {/* Guarantees */}

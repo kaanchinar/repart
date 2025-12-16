@@ -34,3 +34,19 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Environment Variables
+
+### Twilio OTP delivery
+
+The Better-Auth 2FA and phone login flows send OTPs through Twilio. Configure the following variables in your `.env` file:
+
+```
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886   # sandbox sender; keep whatsapp: prefix
+TWILIO_SMS_FROM=+1xxxxxxxxxx                # optional, required for SMS channel
+TWILIO_DEFAULT_CHANNEL=whatsapp             # or sms
+```
+
+`TWILIO_DEFAULT_CHANNEL` lets you pick whether OTPs default to WhatsApp or SMS. When using WhatsApp, pass bare phone numbers (e.g. `+994...`); the app automatically applies the `whatsapp:` prefix.

@@ -22,6 +22,48 @@
       "when": 1765829187396,
       "tag": "0002_classy_jamie_braddock",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1765896113780,
+      "tag": "0003_foamy_sentry",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1765896974045,
+      "tag": "0004_curved_santa_claus",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1765901388324,
+      "tag": "0005_yellow_edwin_jarvis",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1765908622874,
+      "tag": "0006_useful_rhodey",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1765912049340,
+      "tag": "0007_noisy_thunderbolts",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1765917246971,
+      "tag": "0008_harsh_shooting_star",
+      "breakpoints": true
     }
   ]
 }

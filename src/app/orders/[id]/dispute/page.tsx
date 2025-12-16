@@ -49,6 +49,7 @@ export default function DisputePage() {
       toast.success("Mübahisə açıldı. Adminlər tezliklə baxəcaq.");
       router.push(`/orders/${params.id}`);
     } catch (error) {
+      console.error("Failed to create dispute", error);
       toast.error("Mübahisə açmaq mümkün olmadı");
     } finally {
       setLoading(false);
