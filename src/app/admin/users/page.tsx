@@ -1,7 +1,9 @@
+import { Fragment } from "react";
 import { db } from "@/db";
-import { user } from "@/db/schema";
+import { user, adminAuditLogs } from "@/db/schema";
 import { requireAdminSession } from "@/lib/admin-session";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { setUserBan, updateUserRole, adjustTrustScore } from "@/app/actions/admin-moderation";
 import { ShieldBan, CheckCheck, UserPlus2 } from "lucide-react";
 
@@ -13,10 +15,62 @@ const ROLE_OPTIONS = [
   { value: "admin" as const, label: "Admin" },
 ];
 
+const ACTION_LABELS: Record<string, string> = {
+  "user.ban": "Hesab bloklandı",
+  "user.unban": "Ban ləğv edildi",
+  "user.role": "Rol dəyişdi",
+  "user.trust": "Güvən skor yeniləndi",
+};
+
+function describeLog(action: string, metadata: unknown) {
+  const base = ACTION_LABELS[action] ?? action;
+  if (!metadata || typeof metadata !== "object") {
+    return base;
+  }
+  const meta = metadata as Record<string, unknown>;
+  if (action === "user.role" && typeof meta.role === "string") {
+    return `${base} → ${meta.role}`;
+  }
+  if (action === "user.trust") {
+    const next = typeof meta.nextScore === "number" ? meta.nextScore : undefined;
+    const delta = typeof meta.delta === "number" ? meta.delta : undefined;
+    const deltaLabel = typeof delta === "number" ? `${delta > 0 ? "+" : ""}${delta}` : undefined;
+    if (next !== undefined || deltaLabel) {
+      return `${base}${next !== undefined ? ` · ${next}` : ""}${deltaLabel ? ` (${deltaLabel})` : ""}`;
+    }
+  }
+  return base;
+}
+
 export default async function AdminUsersPage() {
   await requireAdminSession();
+  const actor = alias(user, "actor");
+  const [users, auditLogs] = await Promise.all([
+    db.select().from(user).orderBy(desc(user.createdAt)).limit(50),
+    db
+      .select({
+        id: adminAuditLogs.id,
+        entityId: adminAuditLogs.entityId,
+        action: adminAuditLogs.action,
+        metadata: adminAuditLogs.metadata,
+        createdAt: adminAuditLogs.createdAt,
+        actorName: actor.name,
+        actorEmail: actor.email,
+      })
+      .from(adminAuditLogs)
+      .leftJoin(actor, eq(actor.id, adminAuditLogs.actorId))
+      .where(eq(adminAuditLogs.entityType, "user"))
+      .orderBy(desc(adminAuditLogs.createdAt))
+      .limit(200),
+  ]);
 
-  const users = await db.select().from(user).orderBy(desc(user.createdAt)).limit(50);
+  type AuditEntry = (typeof auditLogs)[number];
+  const logsByUser = auditLogs.reduce<Record<string, AuditEntry[]>>((acc, log) => {
+    if (!log.entityId) return acc;
+    if (!acc[log.entityId]) acc[log.entityId] = [];
+    acc[log.entityId].push(log);
+    return acc;
+  }, {});
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -39,8 +93,11 @@ export default async function AdminUsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {users.map((item) => (
-                <tr key={item.id} className="text-slate-200">
+              {users.map((item) => {
+                const activity = logsByUser[item.id] ?? [];
+                return (
+                <Fragment key={item.id}>
+                <tr className="text-slate-200">
                   <td className="px-4 py-4">
                     <div className="font-medium text-white">{item.name}</div>
                     <div className="text-xs text-slate-500">{item.email}</div>
@@ -122,7 +179,34 @@ export default async function AdminUsersPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                <tr>
+                  <td colSpan={5} className="px-4 pb-6 pt-0">
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-3">
+                      <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.3em] text-slate-500">
+                        <span>Fəaliyyət qeydləri</span>
+                        <span>{activity.length ? `${activity.length} qeyd` : "—"}</span>
+                      </div>
+                      {activity.length > 0 ? (
+                        <ul className="space-y-2 text-xs text-slate-400">
+                          {activity.slice(0, 4).map((log) => (
+                            <li key={log.id} className="flex flex-col gap-1 rounded-xl border border-slate-800 bg-slate-950/40 p-2 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <span className="font-semibold text-white">{log.actorName || "Sistem"}</span>
+                                <span className="text-slate-400"> · {describeLog(log.action, log.metadata)}</span>
+                              </div>
+                              <span className="text-[11px] text-slate-500">{new Date(log.createdAt).toLocaleString("az-Latn-AZ")}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-[11px] text-slate-500">Heç bir fəaliyyət qeydi yoxdur.</p>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+                </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -3,7 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db"; // your drizzle instance
 import { twoFactor, phoneNumber } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
-import { sendOtpMessage } from "@/lib/twilio";
+import { notificationService } from "@/lib/notification-service";
 
 const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const rpHost = (() => {
@@ -36,9 +36,10 @@ export const auth = betterAuth({
                     }
 
                     try {
-                        await sendOtpMessage({
-                            to: phoneNumber,
-                            body: `Your Repart security code is ${otp}`,
+                        await notificationService.sendOtp({
+                            phoneNumber,
+                            code: otp,
+                            intent: "two-factor",
                         });
                     } catch (error) {
                         console.error("Failed to send two-factor OTP via Twilio", error);
@@ -55,9 +56,10 @@ export const auth = betterAuth({
             requireVerification: true,
             sendOTP: async ({ phoneNumber, code }) => {
                 try {
-                    await sendOtpMessage({
-                        to: phoneNumber,
-                        body: `Your Repart login code is ${code}`,
+                    await notificationService.sendOtp({
+                        phoneNumber,
+                        code,
+                        intent: "phone-verification",
                     });
                 } catch (error) {
                     console.error("Failed to send phone login OTP via Twilio", error);

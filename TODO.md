@@ -11,7 +11,7 @@
   - [x] 1.1.1.1.2 Verify OTP (SMS) using Firebase (Implemented as 2FA/Passkey in Profile)
   - [x] 1.1.1.1.3 Set Password
   - [x] 1.1.1.1.4 Agree to Terms & Conditions
-- [ ] **1.1.1.2 Login**
+- [x] **1.1.1.2 Login**
   - [x] 1.1.1.2.1 Login with Phone & Password
   - [x] 1.1.1.2.2 Login with Biometric (FaceID/TouchID)
 - [x] **1.1.1.3 Forgot Password**
@@ -83,15 +83,15 @@
 
 #### 1.2.1 User Administration
 
-- [ ] 1.2.1.1 User List
-- [ ] 1.2.1.2 Ban/Unban User
-- [ ] 1.2.1.3 View User Activity Logs
+- [x] 1.2.1.1 User List
+- [x] 1.2.1.2 Ban/Unban User
+- [x] 1.2.1.3 View User Activity Logs
 
 #### 1.2.2 Listing & Content Management
 
-- [ ] 1.2.2.1 Review Suspicious Listings
-- [ ] 1.2.2.2 Manage Device Database
-- [ ] 1.2.2.3 Edit Categories
+- [x] 1.2.2.1 Review Suspicious Listings
+- [x] 1.2.2.2 Manage Device Database
+- [x] 1.2.2.3 Edit Categories
 
 #### 1.2.3 Financial Management
 

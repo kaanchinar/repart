@@ -8,7 +8,7 @@ import AddressManager from "./address-manager";
 import SecuritySettings from "./security-settings";
 import Link from "next/link";
 import { formatAZN } from "@/lib/validators";
-import { ArrowRight, Package, ShoppingBag, Sparkles, Star, CircleUserRound } from "lucide-react";
+import { ArrowRight, Package, ShoppingBag, Sparkles, CircleUserRound } from "lucide-react";
 import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
@@ -56,12 +56,36 @@ export default async function ProfilePage() {
   const totalEarned = mySales.reduce((sum, sale) => sum + sale.amount, 0);
   const activeListings = myListings.filter((item) => item.status === "active").length;
   const disputes = mySales.filter((sale) => sale.status === "disputed").length;
+  const trustScore = session.user.trustScore ?? 0;
+  const roleLabel = (session.user.role ?? "user").toUpperCase();
 
   const statCards = [
     { label: "Aktiv elan", value: activeListings.toString(), accent: "text-emerald-200" },
     { label: "Alış xərci", value: formatAZN(totalSpend), accent: "text-sky-200" },
     { label: "Satış gəliri", value: formatAZN(totalEarned), accent: "text-indigo-200" },
     { label: "Mübahisələr", value: disputes.toString(), accent: disputes ? "text-amber-200" : "text-slate-300" },
+  ];
+
+  const securityFacts = [
+    {
+      label: "Email",
+      value: session.user.emailVerified ? "Təsdiqlənib" : "Təsdiqlənməyib",
+      positive: Boolean(session.user.emailVerified),
+    },
+    {
+      label: "Telefon",
+      value: session.user.phoneNumber
+        ? session.user.phoneNumberVerified
+          ? "Doğrulanıb"
+          : "Təsdiq gözləyir"
+        : "Əlavə olunmayıb",
+      positive: Boolean(session.user.phoneNumber && session.user.phoneNumberVerified),
+    },
+    {
+      label: "İki mərhələli giriş",
+      value: session.user.twoFactorEnabled ? "Aktivdir" : "Passivdir",
+      positive: Boolean(session.user.twoFactorEnabled),
+    },
   ];
   return (
     <div className="min-h-screen bg-[#060910] text-slate-100">
@@ -109,15 +133,24 @@ export default async function ProfilePage() {
             <div className="rounded-2xl border border-slate-800 bg-[#0f1424] p-4">
               <div className="rounded-2xl border border-slate-800 bg-[#11172a] p-5">
                 <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-slate-500">
-                  Hesab səviyyəsi
-                  <Star className="h-4 w-4 text-slate-200" />
+                  Təhlükəsizlik icmalı
+                  <span className="rounded-full border border-slate-700 px-3 py-0.5 text-[10px] font-semibold tracking-[0.3em] text-slate-200">
+                    {roleLabel}
+                  </span>
                 </div>
-                <p className="mt-3 text-3xl font-semibold text-white">Trusted Seller</p>
-                <p className="text-sm text-slate-400">Passkey + 2FA dəstəyi</p>
-                <div className="mt-5 h-2 rounded-full bg-slate-800">
-                  <div className="h-full w-4/5 rounded-full bg-slate-200" />
+                <p className="mt-3 text-3xl font-semibold text-white">{trustScore}</p>
+                <p className="text-sm text-slate-400">Trust score</p>
+                <div className="mt-5 space-y-3 text-sm">
+                  {securityFacts.map((fact) => (
+                    <div
+                      key={fact.label}
+                      className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#0b1324] px-3 py-2"
+                    >
+                      <span className="text-slate-400">{fact.label}</span>
+                      <span className={fact.positive ? "text-emerald-200" : "text-slate-300"}>{fact.value}</span>
+                    </div>
+                  ))}
                 </div>
-                <p className="mt-2 text-xs text-slate-500">Növbəti mərhələ: Pro Satıcı</p>
               </div>
             </div>
           </div>

@@ -7,18 +7,18 @@ import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
 
 export default function SignInPage() {
-  const [identifier, setIdentifier] = useState("")
-  const [password, setPassword] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [twoFactorRequired, setTwoFactorRequired] = useState(false)
-  const [otp, setOtp] = useState("")
+    const [identifier, setIdentifier] = useState("")
+    const [password, setPassword] = useState("")
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState("")
+    const [twoFactorRequired, setTwoFactorRequired] = useState(false)
+    const [otp, setOtp] = useState("")
     const [usingBackupCode, setUsingBackupCode] = useState(false)
     const [usingSmsOtp, setUsingSmsOtp] = useState(false)
-  const [trustDevice, setTrustDevice] = useState(true)
-  const [sendingOtp, setSendingOtp] = useState(false)
+    const [trustDevice, setTrustDevice] = useState(true)
+    const [sendingOtp, setSendingOtp] = useState(false)
     const [info, setInfo] = useState("")
-  const router = useRouter()
+    const router = useRouter()
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -126,185 +126,193 @@ export default function SignInPage() {
     }
   }
 
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white">
-            {twoFactorRequired ? "İki Mərhələli Təsdiq" : "Giriş"}
-          </h2>
-                    <p className="mt-2 text-sm text-gray-400">
+    return (
+        <div className="min-h-screen bg-slate-950 px-4 py-12 text-slate-100">
+            <div className="mx-auto w-full max-w-md space-y-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl">
+                <div className="space-y-2 text-center">
+                    <p className="text-xs uppercase tracking-[0.4em] text-slate-500">Repart</p>
+                    <h1 className="text-2xl font-semibold text-white">
+                        {twoFactorRequired ? "Təsdiq kodu" : "Hesaba giriş"}
+                    </h1>
+                    <p className="text-sm text-slate-400">
                         {twoFactorRequired
                             ? usingBackupCode
-                                ? "Backup kodunu daxil edin"
+                                ? "Backup kodunu yazın"
                                 : usingSmsOtp
-                                    ? "SMS ilə gələn kodu daxil edin"
-                                    : "Authenticator tətbiqindəki kodu daxil edin"
-                            : "Hesabınıza daxil olun"}
+                                    ? "SMS ilə gələn kodu yazın"
+                                    : "Authenticator kodunu yazın"
+                            : "Email/telefon və şifrə ilə daxil olun"}
                     </p>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSignIn}>
-          <div className="space-y-4 rounded-md shadow-sm">
-                        {twoFactorRequired ? (
-                                <div className="space-y-4">
-                                    <div>
-                                        <label htmlFor="otp" className="sr-only">{usingBackupCode ? "Backup Kod" : "OTP Kodu"}</label>
-                                        <input
-                                            id="otp"
-                                            name="otp"
-                                            type="text"
-                                            inputMode={usingBackupCode ? "text" : "numeric"}
-                                            required
-                                            className="relative block w-full rounded-md border-0 bg-gray-800 py-3 px-4 text-white ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-green-500 sm:text-sm sm:leading-6"
-                                            placeholder={usingBackupCode ? "XXXX-XXXX" : usingSmsOtp ? "SMS kodu" : "000000"}
-                                            value={otp}
-                                            onChange={(e) => setOtp(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs text-gray-400">
-                                        <label className="inline-flex items-center gap-2">
-                                            <input
-                                                type="checkbox"
-                                                className="h-4 w-4 rounded border-gray-600 bg-gray-900 text-green-500 focus:ring-green-500"
-                                                checked={trustDevice}
-                                                onChange={(e) => setTrustDevice(e.target.checked)}
-                                            />
-                                            Bu cihazı yadda saxla
-                                        </label>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setUsingBackupCode((prev) => !prev)
-                                                setUsingSmsOtp(false)
-                                                setOtp("")
-                                                setError("")
-                                            }}
-                                            className="text-green-400 hover:text-green-300"
-                                        >
-                                            {usingBackupCode ? "Authenticator kodundan istifadə et" : "Backup kodu ilə daxil ol"}
-                                        </button>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <button
-                                            type="button"
-                                            disabled={sendingOtp}
-                                            onClick={async () => {
-                                                    setSendingOtp(true)
-                                                    setError("")
-                                                    try {
-                                                        const { error: sendError } = await authClient.twoFactor.sendOtp()
-                                                        if (sendError) {
-                                                            setError(sendError.message ?? "Xəta baş verdi")
-                                                        } else {
-                                                            setInfo("Kod SMS ilə göndərildi")
-                                                            setUsingSmsOtp(true)
-                                                            setUsingBackupCode(false)
-                                                        }
-                                                    } catch (error) {
-                                                        console.error(error)
-                                                        setError("Kod göndərmək alınmadı")
-                                                    } finally {
-                                                        setSendingOtp(false)
-                                                    }
-                                            }}
-                                            className="w-full rounded-md border border-gray-700 bg-gray-900/60 px-3 py-2 text-sm font-medium text-gray-200 hover:bg-gray-900 disabled:opacity-50"
-                                        >
-                                            {sendingOtp ? "Kod göndərilir..." : (usingSmsOtp ? "SMS kodunu yenidən göndər" : "SMS ilə kod göndər")}
-                                        </button>
-                                        {usingSmsOtp && (
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setUsingSmsOtp(false)
-                                                    setOtp("")
-                                                    setInfo("")
-                                                }}
-                                                className="w-full rounded-md border border-transparent bg-transparent px-3 py-2 text-xs font-medium text-gray-400 hover:text-gray-200"
-                                            >
-                                                Authenticator koduna qayıt
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                        ) : (
-                <>
-                    <div>
-                    <label htmlFor="identifier" className="sr-only">Email və ya Telefon</label>
-                    <input
-                        id="identifier"
-                        name="identifier"
-                        type="text"
-                        autoComplete="username"
-                        required
-                        className="relative block w-full rounded-md border-0 bg-gray-800 py-3 px-4 text-white ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-green-500 sm:text-sm sm:leading-6"
-                        placeholder="Email və ya Telefon"
-                        value={identifier}
-                        onChange={(e) => setIdentifier(e.target.value)}
-                    />
-                    </div>
-                    <div>
-                    <label htmlFor="password" className="sr-only">Şifrə</label>
-                    <input
-                        id="password"
-                        name="password"
-                        type="password"
-                        autoComplete="current-password"
-                        required
-                        className="relative block w-full rounded-md border-0 bg-gray-800 py-3 px-4 text-white ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-green-500 sm:text-sm sm:leading-6"
-                        placeholder="Şifrə"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-                    </div>
-                </>
-            )}
-          </div>
-
-          {!twoFactorRequired && (
-            <div className="flex items-center justify-between">
-                <div className="text-sm">
-                <Link href="/forgot-password" className="font-medium text-green-500 hover:text-green-400">
-                    Şifrəni unutmusunuz?
-                </Link>
                 </div>
-            </div>
-          )}
+
+                <form className="space-y-5" onSubmit={handleSignIn}>
+                    <div className="space-y-4">
+                        {twoFactorRequired ? (
+                            <div className="space-y-4">
+                                <div className="flex gap-2 text-xs">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setUsingBackupCode(false)
+                                            setUsingSmsOtp(false)
+                                            setOtp("")
+                                            setError("")
+                                            setInfo("")
+                                        }}
+                                        className={`flex-1 rounded-lg border px-3 py-2 ${
+                                            !usingBackupCode && !usingSmsOtp
+                                                ? "border-emerald-400/60 bg-emerald-400/10 text-white"
+                                                : "border-slate-800 text-slate-400"
+                                        }`}
+                                    >
+                                        Authenticator
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            setUsingBackupCode(false)
+                                            setUsingSmsOtp(true)
+                                            setOtp("")
+                                            setError("")
+                                            setInfo("SMS kodu istəyin")
+                                        }}
+                                        className={`flex-1 rounded-lg border px-3 py-2 ${
+                                            usingSmsOtp
+                                                ? "border-sky-400/60 bg-sky-400/10 text-white"
+                                                : "border-slate-800 text-slate-400"
+                                        }`}
+                                    >
+                                        SMS
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setUsingBackupCode(true)
+                                            setUsingSmsOtp(false)
+                                            setOtp("")
+                                            setError("")
+                                            setInfo("Backup kodu daxil edin")
+                                        }}
+                                        className={`flex-1 rounded-lg border px-3 py-2 ${
+                                            usingBackupCode
+                                                ? "border-amber-400/60 bg-amber-400/10 text-white"
+                                                : "border-slate-800 text-slate-400"
+                                        }`}
+                                    >
+                                        Backup
+                                    </button>
+                                </div>
+                                <div>
+                                    <label htmlFor="otp" className="sr-only">OTP</label>
+                                    <input
+                                        id="otp"
+                                        name="otp"
+                                        type="text"
+                                        inputMode={usingBackupCode ? "text" : "numeric"}
+                                        required
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+                                        placeholder={usingBackupCode ? "XXXX-XXXX" : usingSmsOtp ? "SMS kodu" : "000000"}
+                                        value={otp}
+                                        onChange={(e) => setOtp(e.target.value)}
+                                    />
+                                </div>
+                                <label className="flex items-center gap-2 text-xs text-slate-400">
+                                    <input
+                                        type="checkbox"
+                                        className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500"
+                                        checked={trustDevice}
+                                        onChange={(e) => setTrustDevice(e.target.checked)}
+                                    />
+                                    Bu cihazı yadda saxla
+                                </label>
+                                <button
+                                    type="button"
+                                    disabled={sendingOtp}
+                                    onClick={async () => {
+                                        setSendingOtp(true)
+                                        setError("")
+                                        try {
+                                            const { error: sendError } = await authClient.twoFactor.sendOtp()
+                                            if (sendError) {
+                                                setError(sendError.message ?? "Xəta baş verdi")
+                                            } else {
+                                                setInfo("Kod SMS ilə göndərildi")
+                                                setUsingSmsOtp(true)
+                                                setUsingBackupCode(false)
+                                            }
+                                        } catch (err) {
+                                            console.error(err)
+                                            setError("Kod göndərmək alınmadı")
+                                        } finally {
+                                            setSendingOtp(false)
+                                        }
+                                    }}
+                                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm font-medium text-slate-100 hover:border-slate-600 disabled:opacity-50"
+                                >
+                                    {sendingOtp ? "Kod göndərilir..." : usingSmsOtp ? "SMS kodunu yenilə" : "SMS ilə kod göndər"}
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="space-y-2">
+                                    <label htmlFor="identifier" className="text-xs text-slate-400">Email və ya telefon</label>
+                                    <input
+                                        id="identifier"
+                                        name="identifier"
+                                        type="text"
+                                        autoComplete="username"
+                                        required
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+                                        placeholder="example@mail.com və ya +994..."
+                                        value={identifier}
+                                        onChange={(e) => setIdentifier(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label htmlFor="password" className="text-xs text-slate-400">Şifrə</label>
+                                    <input
+                                        id="password"
+                                        name="password"
+                                        type="password"
+                                        autoComplete="current-password"
+                                        required
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+                                        placeholder="••••••••"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                    />
+                                </div>
+                                <div className="text-right text-sm">
+                                    <Link href="/forgot-password" className="text-emerald-400 hover:text-emerald-300">
+                                        Şifrəni unutmusunuz?
+                                    </Link>
+                                </div>
+                            </>
+                        )}
+                    </div>
 
                     {error && (
-            <div className="text-red-500 text-sm text-center">{error}</div>
-          )}
+                        <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">{error}</div>
+                    )}
                     {!error && info && (
-                        <div className="text-green-500 text-sm text-center">{info}</div>
+                        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-100">{info}</div>
                     )}
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative flex w-full justify-center rounded-md bg-green-600 px-3 py-3 text-sm font-semibold text-white hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (twoFactorRequired ? "Təsdiqlə" : "Daxil ol")}
-            </button>
-          </div>
-        </form>
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full rounded-xl bg-emerald-500 py-3 text-sm font-semibold text-white hover:bg-emerald-400 disabled:opacity-50"
+                    >
+                        {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : twoFactorRequired ? "Təsdiqlə" : "Daxil ol"}
+                    </button>
+                </form>
 
-        {!twoFactorRequired && (
-            <div className="mt-6">
-                <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-gray-700" />
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                        <span className="bg-gray-900 px-2 text-gray-400">və ya</span>
-                    </div>
-                </div>
-
-                <div className="mt-6">
+                {!twoFactorRequired && (
                     <button
                         type="button"
                         onClick={async () => {
                             setLoading(true)
+                            setError("")
                             try {
                                 await authClient.signIn.passkey({
                                     fetchOptions: {
@@ -317,32 +325,22 @@ export default function SignInPage() {
                                         }
                                     }
                                 })
-                            } catch (error) {
-                                console.error(error)
+                            } catch (err) {
+                                console.error(err)
                                 setError("Passkey xətası")
                                 setLoading(false)
                             }
                         }}
-                        className="flex w-full items-center justify-center gap-3 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-100 hover:border-slate-600"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M7.875 14.25l1.214 1.942a2.25 2.25 0 001.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 011.872 1.002l.164.246a2.25 2.25 0 001.872 1.002h2.092a2.25 2.25 0 001.872-1.002l.164-.246A2.25 2.25 0 0116.954 9h4.636M2.41 9a2.25 2.25 0 00-.16.832V12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 12V9.832c0-.287-.055-.57-.16-.832M2.41 9a2.25 2.25 0 01.382-.632l3.285-3.832a2.25 2.25 0 011.708-.786h8.43c.657 0 1.281.287 1.709.786l3.284 3.832c.163.19.291.404.382.632M7 20.25h10" />
-                        </svg>
-                        Passkey (Biometrik) ilə daxil ol
+                        Passkey ilə daxil ol
                     </button>
-                </div>
-            </div>
-        )}
+                )}
 
-        <div className="text-center text-sm">
-          <p className="text-gray-400">
-            Hesabınız yoxdur?{" "}
-            <Link href="/sign-up" className="font-medium text-green-500 hover:text-green-400">
-              Qeydiyyatdan keçin
-            </Link>
-          </p>
+                <p className="text-center text-sm text-slate-400">
+                    Hesabınız yoxdur? <Link href="/sign-up" className="text-emerald-400 hover:text-emerald-300">Qeydiyyatdan keçin</Link>
+                </p>
+            </div>
         </div>
-      </div>
-    </div>
-  )
+    )
 }

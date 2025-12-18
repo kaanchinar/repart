@@ -11,7 +11,7 @@ const twilioClient: Twilio | null = twilioAccountSid && twilioAuthToken
   ? twilio(twilioAccountSid, twilioAuthToken, { lazyLoading: true })
   : null
 
-type TwilioChannel = "sms" | "whatsapp"
+export type TwilioChannel = "sms" | "whatsapp"
 
 export type SendOtpOptions = {
   to: string

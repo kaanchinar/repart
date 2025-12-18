@@ -6,9 +6,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
 
-type EmailSignUpPayload = Parameters<typeof authClient.signUp.email>[0] & {
-  phoneNumber?: string;
-};
+type EmailSignUpPayload = Parameters<typeof authClient.signUp.email>[0];
 
 export default function SignUpPage() {
   const [name, setName] = useState("")
@@ -92,7 +90,6 @@ export default function SignUpPage() {
       email,
       password,
       name,
-      phoneNumber,
     };
 
     await authClient.signUp.email(payload, {
@@ -111,28 +108,29 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white">
-            {verificationPending ? "Telefon təsdiqi" : "Qeydiyyat"}
+    <div className="min-h-screen bg-slate-950 px-4 py-12 text-slate-100">
+      <div className="mx-auto w-full max-w-md space-y-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl">
+        <div className="space-y-2 text-center">
+          <p className="text-xs uppercase tracking-[0.4em] text-slate-500">Repart</p>
+          <h2 className="text-2xl font-semibold text-white">
+            {verificationPending ? "Telefon təsdiqi" : "Yeni hesab"}
           </h2>
-          <p className="mt-2 text-sm text-gray-400">
-            {verificationPending ? "Nömrənizi SMS kodu ilə təsdiqləyin" : "Yeni hesab yaradın"}
+          <p className="text-sm text-slate-400">
+            {verificationPending ? "SMS kodunu daxil edin" : "Bir neçə field ilə qeydiyyat"}
           </p>
         </div>
 
         {verificationPending ? (
-          <form className="mt-8 space-y-6" onSubmit={handleVerifyPhone}>
-            <div className="space-y-4 rounded-md shadow-sm">
-              <div>
-                <label htmlFor="verify-phone" className="text-xs text-gray-400">Telefon nömrəsi</label>
+          <form className="space-y-5" onSubmit={handleVerifyPhone}>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <label htmlFor="verify-phone" className="text-xs text-slate-400">Telefon nömrəsi</label>
                 <input
                   id="verify-phone"
                   name="verify-phone"
                   type="tel"
-                  className="mt-1 relative block w-full rounded-md border border-gray-700 bg-gray-900 py-3 px-4 text-white placeholder:text-gray-500 focus:border-green-500 focus:outline-none sm:text-sm"
-                  placeholder="Telefon nömrəsi"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+                  placeholder="Telefon"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                 />
@@ -141,18 +139,18 @@ export default function SignUpPage() {
                 type="button"
                 disabled={otpSending}
                 onClick={sendPhoneOtp}
-                className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm font-medium text-gray-200 hover:bg-gray-900/70 disabled:opacity-50"
+                className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm font-medium text-slate-100 hover:border-slate-600 disabled:opacity-50"
               >
-                {otpSending ? "Kod göndərilir..." : "SMS kodunu göndər"}
+                {otpSending ? "Kod göndərilir..." : "SMS kodu göndər"}
               </button>
-              <div>
-                <label htmlFor="sms-code" className="text-xs text-gray-400">SMS kodu</label>
+              <div className="space-y-2">
+                <label htmlFor="sms-code" className="text-xs text-slate-400">SMS kodu</label>
                 <input
                   id="sms-code"
                   name="sms-code"
                   type="text"
                   inputMode="numeric"
-                  className="mt-1 relative block w-full rounded-md border border-gray-700 bg-gray-900 py-3 px-4 text-white placeholder:text-gray-500 focus:border-green-500 focus:outline-none sm:text-sm"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
                   placeholder="000000"
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
@@ -161,127 +159,116 @@ export default function SignUpPage() {
             </div>
 
             {verificationError && (
-              <div className="text-red-500 text-sm text-center">{verificationError}</div>
+              <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">{verificationError}</div>
             )}
             {!verificationError && otpInfo && (
-              <div className="text-green-500 text-sm text-center">{otpInfo}</div>
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-100">{otpInfo}</div>
             )}
 
-            <div className="space-y-3">
-              <button
-                type="submit"
-                disabled={verificationLoading}
-                className="group relative flex w-full justify-center rounded-md bg-green-600 px-3 py-3 text-sm font-semibold text-white hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {verificationLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "Təsdiqlə"}
-              </button>
-              <button
-                type="button"
-                disabled={otpSending}
-                onClick={sendPhoneOtp}
-                className="w-full rounded-md border border-transparent bg-transparent px-3 py-2 text-xs font-medium text-gray-400 hover:text-gray-200"
-              >
-                Kodu yenidən göndər
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={verificationLoading}
+              className="w-full rounded-xl bg-emerald-500 py-3 text-sm font-semibold text-white hover:bg-emerald-400 disabled:opacity-50"
+            >
+              {verificationLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Təsdiqlə"}
+            </button>
+            <button
+              type="button"
+              disabled={otpSending}
+              onClick={sendPhoneOtp}
+              className="w-full rounded-xl border border-slate-800 bg-transparent px-4 py-2 text-xs text-slate-400 hover:text-slate-100"
+            >
+              Kodu yenidən göndər
+            </button>
           </form>
         ) : (
-          <form className="mt-8 space-y-6" onSubmit={handleSignUp}>
-            <div className="space-y-4 rounded-md shadow-sm">
-              <div>
-                <label htmlFor="name" className="sr-only">Ad Soyad</label>
+          <form className="space-y-5" onSubmit={handleSignUp}>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <label htmlFor="name" className="text-xs text-slate-400">Ad Soyad</label>
                 <input
                   id="name"
                   name="name"
                   type="text"
                   required
-                  className="relative block w-full rounded-md border-0 bg-gray-800 py-3 px-4 text-white ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-green-500 sm:text-sm sm:leading-6"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
                   placeholder="Ad Soyad"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
               </div>
-              <div>
-                <label htmlFor="phone" className="sr-only">Telefon</label>
+              <div className="space-y-2">
+                <label htmlFor="phone" className="text-xs text-slate-400">Telefon</label>
                 <input
                   id="phone"
                   name="phoneNumber"
                   type="tel"
                   required
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                  placeholder="Telefon nömrəsi"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+                  placeholder="+994 ..."
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                 />
               </div>
-              <div>
-                <label htmlFor="email-address" className="sr-only">Email</label>
+              <div className="space-y-2">
+                <label htmlFor="email-address" className="text-xs text-slate-400">Email</label>
                 <input
                   id="email-address"
                   name="email"
                   type="email"
                   autoComplete="email"
                   required
-                  className="relative block w-full rounded-md border-0 bg-gray-800 py-3 px-4 text-white ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-green-500 sm:text-sm sm:leading-6"
-                  placeholder="Email ünvanı"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+                  placeholder="example@mail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
-              <div>
-                <label htmlFor="password" className="sr-only">Şifrə</label>
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-xs text-slate-400">Şifrə</label>
                 <input
                   id="password"
                   name="password"
                   type="password"
                   autoComplete="current-password"
                   required
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-gray-900 rounded-b-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                  placeholder="Şifrə"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="flex items-center">
+            <label className="flex items-center gap-2 text-sm text-slate-400">
               <input
                 id="terms"
                 name="terms"
                 type="checkbox"
-                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-700 rounded bg-gray-900"
+                className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500"
                 checked={agreeTerms}
                 onChange={(e) => setAgreeTerms(e.target.checked)}
               />
-              <label htmlFor="terms" className="ml-2 block text-sm text-gray-400">
-                <Link href="/terms" className="text-green-500 hover:text-green-400">İstifadəçi şərtləri</Link> ilə razıyam
-              </label>
-            </div>
+              <span><Link href="/terms" className="text-emerald-400 hover:text-emerald-300">İstifadəçi şərtləri</Link> ilə razıyam</span>
+            </label>
 
             {error && (
-              <div className="text-red-500 text-sm text-center">{error}</div>
+              <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">{error}</div>
             )}
 
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="group relative flex w-full justify-center rounded-md bg-green-600 px-3 py-3 text-sm font-semibold text-white hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? <Loader2 className="animate-spin h-5 w-5" /> : "Qeydiyyatdan keç"}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-emerald-500 py-3 text-sm font-semibold text-white hover:bg-emerald-400 disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Qeydiyyatdan keç"}
+            </button>
           </form>
         )}
 
-        <div className="text-center text-sm">
-          <p className="text-gray-400">
-            Artıq hesabınız var?{" "}
-            <Link href="/sign-in" className="font-medium text-green-500 hover:text-green-400">
-              Daxil olun
-            </Link>
-          </p>
-        </div>
+        <p className="text-center text-sm text-slate-400">
+          Artıq hesabınız var? <Link href="/sign-in" className="text-emerald-400 hover:text-emerald-300">Daxil olun</Link>
+        </p>
       </div>
     </div>
   )
