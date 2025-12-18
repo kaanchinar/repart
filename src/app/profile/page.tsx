@@ -20,6 +20,13 @@ export default async function ProfilePage() {
     redirect("/sign-in");
   }
 
+  type ProfileUser = NonNullable<typeof session>["user"] & {
+    trustScore?: number | null;
+    role?: string | null;
+  };
+
+  const profileUser: ProfileUser = session.user;
+
   const myListings = await db
     .select()
     .from(listings)
@@ -56,8 +63,8 @@ export default async function ProfilePage() {
   const totalEarned = mySales.reduce((sum, sale) => sum + sale.amount, 0);
   const activeListings = myListings.filter((item) => item.status === "active").length;
   const disputes = mySales.filter((sale) => sale.status === "disputed").length;
-  const trustScore = session.user.trustScore ?? 0;
-  const roleLabel = (session.user.role ?? "user").toUpperCase();
+  const trustScore = profileUser.trustScore ?? 0;
+  const roleLabel = (profileUser.role ?? "user").toUpperCase();
 
   const statCards = [
     { label: "Aktiv elan", value: activeListings.toString(), accent: "text-emerald-200" },
