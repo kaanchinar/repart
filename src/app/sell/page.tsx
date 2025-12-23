@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import Webcam from "react-webcam";
 import Tesseract from "tesseract.js";
-import { Loader2, Camera, XCircle, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Camera, XCircle, ArrowLeft, ChevronLeft, ChevronRight, SwitchCamera, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
@@ -45,6 +45,11 @@ type CatalogItem = {
 type Adjustment = {
   label: string;
   impact: number;
+};
+
+type SelectedPhoto = {
+  file: File;
+  previewUrl: string;
 };
 
 type ManufacturerSeed = {
@@ -924,11 +929,23 @@ export default function SellPage() {
   const [identifier, setIdentifier] = useState("");
   const [price, setPrice] = useState("");
   const [notes, setNotes] = useState("");
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<SelectedPhoto[]>([]);
   const [overlay, setOverlay] = useState<OverlayKey>("front");
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const webcamRef = useRef<Webcam>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const ocrInputRef = useRef<HTMLInputElement>(null);
+
+  const videoConstraints = useMemo(() => {
+    return {
+      facingMode: { ideal: facingMode },
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+    } as MediaTrackConstraints;
+  }, [facingMode]);
 
   const brandOptions = useMemo(() => {
     if (!deviceType) return [];
@@ -1016,42 +1033,141 @@ export default function SellPage() {
     setConditionAnswers((prev) => ({ ...prev, [questionId]: optionId }));
   };
 
-  const handlePhotoCapture = () => {
-    if (!webcamRef.current) {
+  const getSnapshot = useCallback(() => {
+    const webcam = webcamRef.current;
+    if (!webcam) {
       toast.error("Kamera aktiv deyil");
-      return;
+      return null;
     }
 
+    const video = webcam.video as HTMLVideoElement | null;
+    if (!video || video.readyState < 2) {
+      toast.error("Kamera hələ hazır deyil");
+      return null;
+    }
+
+    const snapshot = webcam.getScreenshot();
+    if (!snapshot) {
+      toast.error("Şəkil çəkə bilmədik");
+      return null;
+    }
+
+    return snapshot;
+  }, []);
+
+  const addPhotoFiles = useCallback(
+    (files: File[]) => {
+      const remaining = Math.max(0, MAX_PHOTOS - photos.length);
+      if (remaining === 0) {
+        toast.error(`Max ${MAX_PHOTOS} foto əlavə edilə bilər`);
+        return;
+      }
+
+      const accepted = files.filter((file) => file.type.startsWith("image/"));
+      if (accepted.length === 0) {
+        toast.error("Şəkil faylı seçin");
+        return;
+      }
+
+      const picked = accepted.slice(0, remaining);
+      const next: SelectedPhoto[] = picked.map((file) => ({ file, previewUrl: URL.createObjectURL(file) }));
+      setPhotos((prev) => [...prev, ...next]);
+      toast.success("Foto əlavə olundu");
+    },
+    [photos.length]
+  );
+
+  useEffect(() => {
+    return () => {
+      for (const photo of photos) {
+        URL.revokeObjectURL(photo.previewUrl);
+      }
+    };
+  }, [photos]);
+
+  const removePhotoAt = useCallback((idx: number) => {
+    setPhotos((prev) => {
+      const target = prev[idx];
+      if (target) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((_, index) => index !== idx);
+    });
+  }, []);
+
+  const capturePhotoFile = useCallback(async () => {
+    const snapshot = getSnapshot();
+    if (!snapshot) return null;
+
+    // data:image/jpeg;base64,... -> Blob
+    const blob = await fetch(snapshot).then((res) => res.blob());
+    const file = new File([blob], `sell-photo-${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
+    return file;
+  }, [getSnapshot]);
+
+  const handlePhotoCapture = useCallback(async () => {
     if (photos.length >= MAX_PHOTOS) {
       toast.error(`Max ${MAX_PHOTOS} foto əlavə edilə bilər`);
       return;
     }
 
-    const snapshot = webcamRef.current.getScreenshot();
-    if (!snapshot) {
-      toast.error("Şəkil çəkə bilmədik");
-      return;
-    }
-
-    setPhotos((prev) => [...prev, snapshot]);
-    toast.success("Şəkil əlavə olundu");
-  };
-
-  const captureAndScan = useCallback(async () => {
-    if (!webcamRef.current) return;
-    const snapshot = webcamRef.current.getScreenshot();
-    if (!snapshot) return;
-
-    setScanning(true);
     try {
+      const file = await capturePhotoFile();
+      if (!file) return;
+      addPhotoFiles([file]);
+    } catch (error) {
+      console.error(error);
+      toast.error("Şəkil çəkə bilmədik");
+    }
+  }, [addPhotoFiles, capturePhotoFile, photos.length]);
+
+  const getIdentifierFromText = useCallback(
+    (text: string) => {
+      if (deviceType === "computer") {
+        const match = text.toUpperCase().match(/[A-Z0-9]{8,}/);
+        return match?.[0] ?? null;
+      }
+
+      const digits = text.replace(/\D/g, "");
+      const match = digits.match(/\d{15}/);
+      return match?.[0] ?? null;
+    },
+    [deviceType]
+  );
+
+  const ocrIdentifierFromFile = useCallback(
+    async (file: File) => {
       const {
         data: { text },
-      } = await Tesseract.recognize(snapshot, "eng");
+      } = await Tesseract.recognize(file, "eng");
+      return getIdentifierFromText(text);
+    },
+    [getIdentifierFromText]
+  );
 
-      const pattern = deviceType === "computer" ? /[A-Z0-9]{8,}/ : /\b\d{15}\b/;
-      const match = text.match(pattern);
-      if (match?.[0]) {
-        setIdentifier(match[0]);
+  const scanIdentifier = useCallback(async () => {
+    if (scanning) return;
+
+    setScanning(true);
+
+    try {
+      // Prefer OCR from the latest selected/captured image.
+      const latest = photos[photos.length - 1];
+      if (latest?.file) {
+        const parsed = await ocrIdentifierFromFile(latest.file);
+        if (parsed) {
+          setIdentifier(parsed);
+          toast.success(`${identifierLabel} tapıldı`);
+        } else {
+          toast.error(`${identifierLabel} oxunmadı`);
+        }
+        return;
+      }
+
+      // If no photos yet, OCR from current camera frame.
+      const file = await capturePhotoFile();
+      if (!file) return;
+      const parsed = await ocrIdentifierFromFile(file);
+      if (parsed) {
+        setIdentifier(parsed);
         toast.success(`${identifierLabel} tapıldı`);
       } else {
         toast.error(`${identifierLabel} oxunmadı`);
@@ -1062,18 +1178,12 @@ export default function SellPage() {
     } finally {
       setScanning(false);
     }
-  }, [deviceType, identifierLabel]);
+  }, [capturePhotoFile, identifierLabel, ocrIdentifierFromFile, photos, scanning]);
 
-  const dataURLtoFile = useCallback((dataURL: string, filename: string) => {
-    const [header, body] = dataURL.split(",");
-    const mimeMatch = header.match(/:(.*?);/);
-    const mime = mimeMatch?.[1] ?? "image/jpeg";
-    const binary = atob(body);
-    const buffer = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i += 1) {
-      buffer[i] = binary.charCodeAt(i);
-    }
-    return new File([buffer], filename, { type: mime });
+  useEffect(() => {
+    return () => {
+      // no-op
+    };
   }, []);
 
   const handleSubmit = useCallback(async () => {
@@ -1089,7 +1199,7 @@ export default function SellPage() {
     try {
       const uploaded: string[] = [];
       for (let i = 0; i < photos.length; i += 1) {
-        const file = dataURLtoFile(photos[i], `sell-photo-${i}.jpg`);
+        const file = photos[i].file;
         const formData = new FormData();
         formData.append("file", file);
         const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
@@ -1127,7 +1237,7 @@ export default function SellPage() {
     } finally {
       setLoading(false);
     }
-  }, [session, canSubmit, selectedModel, deviceType, photos, dataURLtoFile, normalizedFaultTree, identifier, priceNumber, conditionSummary, riskScore, router]);
+  }, [session, canSubmit, selectedModel, deviceType, photos, normalizedFaultTree, identifier, priceNumber, conditionSummary, riskScore, router]);
 
   const renderStepNavigation = () => (
     <div className="flex items-center justify-between rounded-full border border-slate-800 px-4 py-2 text-xs uppercase tracking-[0.45em] text-slate-500">
@@ -1393,7 +1503,20 @@ export default function SellPage() {
               </div>
 
               <div className="relative aspect-video overflow-hidden rounded-2xl border border-slate-800 bg-black">
-                <Webcam ref={webcamRef} audio={false} screenshotFormat="image/jpeg" className="h-full w-full object-cover" />
+                <Webcam
+                  key={facingMode}
+                  ref={webcamRef}
+                  audio={false}
+                  screenshotFormat="image/jpeg"
+                  mirrored={facingMode === "user"}
+                  videoConstraints={videoConstraints}
+                  onUserMedia={() => setCameraReady(true)}
+                  onUserMediaError={() => {
+                    setCameraReady(false);
+                    toast.error("Kamera icazəsi verilmədi");
+                  }}
+                  className="h-full w-full object-cover"
+                />
                 <div className="pointer-events-none absolute inset-0 m-4 rounded-2xl border-2 border-dashed border-white/30" />
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                   <span className="rounded-full bg-black/40 px-3 py-1 text-xs text-white">{overlayHints[overlay]}</span>
@@ -1401,15 +1524,35 @@ export default function SellPage() {
                 <div className="absolute bottom-3 right-3 flex gap-2">
                   <button
                     type="button"
-                    onClick={captureAndScan}
-                    disabled={scanning}
+                    onClick={scanIdentifier}
+                    disabled={scanning || (!cameraReady && photos.length === 0)}
                     className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-white"
                   >
                     {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : identifierLabel}
                   </button>
                   <button
                     type="button"
+                    onClick={() => {
+                      setCameraReady(false);
+                      setFacingMode((prev) => (prev === "environment" ? "user" : "environment"));
+                    }}
+                    className="rounded-full bg-white/10 px-3 py-2 text-white"
+                    aria-label="Switch camera"
+                  >
+                    <SwitchCamera className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="rounded-full bg-white/10 px-3 py-2 text-white"
+                    aria-label="Pick from gallery"
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
                     onClick={handlePhotoCapture}
+                    disabled={!cameraReady}
                     className="rounded-full bg-white px-3 py-2 text-black"
                   >
                     <Camera className="h-4 w-4" />
@@ -1417,15 +1560,58 @@ export default function SellPage() {
                 </div>
               </div>
 
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={async (event) => {
+                  const input = event.currentTarget;
+                  const files = input?.files;
+                  if (files) addPhotoFiles(Array.from(files));
+                  if (input) input.value = "";
+                }}
+              />
+
+              <input
+                ref={ocrInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (event) => {
+                  const input = event.currentTarget;
+                  const file = input?.files?.[0];
+                  if (file) {
+                    setScanning(true);
+                    try {
+                      const parsed = await ocrIdentifierFromFile(file);
+                      if (parsed) {
+                        setIdentifier(parsed);
+                        toast.success(`${identifierLabel} tapıldı`);
+                      } else {
+                        toast.error(`${identifierLabel} oxunmadı`);
+                      }
+                    } catch (error) {
+                      console.error(error);
+                      toast.error("OCR zamanı xəta baş verdi");
+                    } finally {
+                      setScanning(false);
+                    }
+                  }
+                  if (input) input.value = "";
+                }}
+              />
+
               {photos.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto">
-                  {photos.map((src, idx) => (
-                    <div key={src} className="relative h-24 w-24 overflow-hidden rounded-xl border border-slate-800">
+                  {photos.map((photo, idx) => (
+                    <div key={photo.previewUrl} className="relative h-24 w-24 overflow-hidden rounded-xl border border-slate-800">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={src} alt={`photo-${idx}`} className="h-full w-full object-cover" />
+                      <img src={photo.previewUrl} alt={`photo-${idx}`} className="h-full w-full object-cover" />
                       <button
                         type="button"
-                        onClick={() => setPhotos((prev) => prev.filter((_, index) => index !== idx))}
+                        onClick={() => removePhotoAt(idx)}
                         className="absolute right-1 top-1 rounded-full bg-rose-500/80 p-1 text-white"
                       >
                         <XCircle className="h-4 w-4" />
@@ -1439,12 +1625,22 @@ export default function SellPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-xs uppercase tracking-[0.35em] text-slate-500">{identifierLabel}</label>
-                <input
-                  value={identifier}
-                  onChange={(event) => setIdentifier(event.target.value)}
-                  placeholder={deviceType === "computer" ? "C02..." : "354..."}
-                  className="w-full rounded-full border border-slate-800 bg-slate-950/60 px-4 py-2 text-sm"
-                />
+                <div className="flex gap-2">
+                  <input
+                    value={identifier}
+                    onChange={(event) => setIdentifier(event.target.value)}
+                    placeholder={deviceType === "computer" ? "C02..." : "354..."}
+                    className="w-full rounded-full border border-slate-800 bg-slate-950/60 px-4 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => ocrInputRef.current?.click()}
+                    disabled={scanning}
+                    className="shrink-0 rounded-full border border-slate-800 px-4 py-2 text-xs text-slate-300 disabled:opacity-40"
+                  >
+                    OCR
+                  </button>
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-xs uppercase tracking-[0.35em] text-slate-500">Qiymət (AZN)</label>
@@ -1472,7 +1668,7 @@ export default function SellPage() {
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 placeholder="Məs: Ekranda kiçik cızıq, kabel yoxdur"
-                className="min-h-[90px] w-full rounded-2xl border border-slate-800 bg-slate-950/60 p-3 text-sm"
+                className="min-h-22.5 w-full rounded-2xl border border-slate-800 bg-slate-950/60 p-3 text-sm"
               />
             </div>
 
